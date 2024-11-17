@@ -1,0 +1,12 @@
+.form-container {
+    height: 70vh;
+}
+
+.form-control:focus {
+    border-color: #43D87E; /* Cambia el borde del input */
+    box-shadow: 0 0 5px #43d87f31; /* Añade un efecto de sombra */
+}
+
+.botonEnviar {
+    background-color: #43D87E;
+}
