@@ -1,34 +1,42 @@
-$(document).ready(function() {
-    // Evento de clic en el ícono del carrito
-    $('.carrito').on('click', function() {
+$(document).ready(function () {
+    $('.carrito').on('click', function () {
         // Hacer la solicitud AJAX para obtener los productos del carrito
         $.ajax({
             url: './accion/accionObtenerCarrito.php',
             type: 'POST',
-            success: function(response) {
+            success: function (response) {
                 let data = JSON.parse(response);
-                
+
                 if (data.estado === 'exito') {
                     let carritoHTML = '';
                     let total = 0; // Variable para el total de la compra
-                    
-                    data.productos.forEach(function(producto) {
-                        // Calcular el subtotal (precio * cantidad)
-                        let subtotal = producto.precio * producto.cantidad;
-                        total += subtotal; // Acumulamos el total
 
-                        // Agregar fila a la tabla
-                        carritoHTML += `
-                            <tr data-id="${producto.idproducto}"> 
-                                <td><img src="${producto.imagen}" alt="${producto.nombre}" class="img-fluid" style="max-width: 50px;"></td>
-                                <td>${producto.nombre}</td>
-                                <td>${producto.cantidad}</td>
-                                <td>$${producto.precio}</td>
-                                <td>$${subtotal}</td>
-                                <td><button class="btn btn-danger btn-sm delete-item">Eliminar</button></td>
-                            </tr>
-                        `;
-                    });
+                    // Variable para almacenar el idCompraEstado
+                    let idCompraEstado = null;
+
+                    // Iterar sobre los carritos
+                    if (data.carritos && data.carritos.length > 0) {
+                        let carrito = data.carritos[0]; 
+                        idCompraEstado = carrito.idcompraestado; 
+
+                        carrito.productos.forEach(function (producto) {
+                            // Calcular el subtotal (precio * cantidad)
+                            let subtotal = producto.precio * producto.cantidad;
+                            total += subtotal; // Acumulamos el total
+
+                            // Agregar fila a la tabla
+                            carritoHTML += `
+                                <tr data-id="${producto.idproducto}">
+                                    <td><img src="${producto.imagen}" alt="${producto.nombre}" class="img-fluid" style="max-width: 50px;"></td>
+                                    <td>${producto.nombre}</td>
+                                    <td>${producto.cantidad}</td>
+                                    <td>$${producto.precio}</td>
+                                    <td>$${subtotal}</td>
+                                    <td><button class="btn btn-danger btn-sm delete-item">Eliminar</button></td>
+                                </tr>
+                            `;
+                        });
+                    }
 
                     // Limpiar el contenido anterior y agregar los nuevos productos
                     $('#cart-items').html(carritoHTML);
@@ -43,40 +51,41 @@ $(document).ready(function() {
                             <td>$${total}</td>
                         </tr>
                     `);
-                    
+
                     // Mostrar el modal del carrito
                     $('#cartModal').modal('show');
 
                     // Asociar el evento de eliminación dinámicamente
-                    $('.delete-item').on('click', function() {
-                        // Obtener el idcompraitem desde el atributo data-id
+                    $('.delete-item').on('click', function () {
+                        // Obtener el idProducto desde el atributo data-id
                         let idProducto = $(this).closest('tr').data('id');
-                        //console.log(idProducto);
-                        
+                        let idCompraEstado = $('#idcompraestado').val();
+
                         // Hacer la solicitud AJAX para eliminar el ítem del carrito
                         $.ajax({
                             url: './accion/accionEliminarCarrito.php',
                             type: 'POST',
-                            data: { idproducto: idProducto }, 
-                            dataType: 'json', 
-                            success: function(response) {
+                            data: { idproducto: idProducto, idcompraestado: idCompraEstado },
+                            dataType: 'json',
+                            success: function (response) {
                                 if (response.estado === 'exito') {
                                     Swal.fire({
                                         icon: 'success',
                                         title: 'Producto eliminado',
-                                        text: response.mensaje, 
+                                        text: response.mensaje,
                                     });
 
+                                    // Recargar el carrito después de eliminar un producto
                                     $('.carrito').click();
                                 } else {
                                     Swal.fire({
                                         icon: 'error',
                                         title: 'Error al eliminar',
-                                        text: response.mensaje, // Usar response en lugar de data
+                                        text: response.mensaje,
                                     });
                                 }
                             },
-                            error: function() {
+                            error: function () {
                                 Swal.fire({
                                     icon: 'error',
                                     title: 'Error',
@@ -85,6 +94,9 @@ $(document).ready(function() {
                             }
                         });
                     });
+
+                    // Guardar el idCompraEstado en un atributo oculto
+                    $('#idcompraestado').val(idCompraEstado);
                 } else {
                     Swal.fire({
                         icon: 'error',
@@ -93,7 +105,7 @@ $(document).ready(function() {
                     });
                 }
             },
-            error: function() {
+            error: function () {
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
@@ -103,3 +115,4 @@ $(document).ready(function() {
         });
     });
 });
+

@@ -1,9 +1,7 @@
 <?php
-// Incluir las configuraciones necesarias y clases
 include_once "../../../configuracion.php";
 
-// Recibir los datos enviados desde el formulario (AJAX)
-$datos = data_submitted(); // Los datos son enviados por POST (cicantidad y idproducto)
+$datos = data_submitted(); // Los datos son (cicantidad y idproducto)
 
 // Verificar si los datos necesarios están presentes
 if (isset($datos['idproducto'], $datos['cicantidad'])) {
@@ -18,7 +16,7 @@ if (isset($datos['idproducto'], $datos['cicantidad'])) {
     $controlCompra = new AbmCompra();
     $controlCompraEstado = new AbmCompraEstado();
     $controlCompraItem = new AbmCompraItem();
-    $controlProducto = new ABMProducto(); // Instanciamos ABMProducto para acceder al stock
+    $controlProducto = new ABMProducto(); 
 
     // Verificar el stock disponible para el producto
     $stockDisponible = $controlProducto->obtenerStockProducto($idProducto);
@@ -30,49 +28,57 @@ if (isset($datos['idproducto'], $datos['cicantidad'])) {
         // Buscar las compras del usuario
         $comprasCliente = $controlCompra->buscar(['idusuario' => $idUsuario]);
 
-        // Si el cliente no tiene compras, se crea una nueva compra con el estado 'carrito'
-        if (count($comprasCliente) == 0) {
+        // Variable para determinar si hay un carrito activo
+        $carritoActivo = null;
+
+        foreach ($comprasCliente as $compra) {
+            // Verificar si la compra tiene estado 'carrito'
+            $compraEstado = $controlCompraEstado->buscar(['idcompra' => $compra->getIdCompra()]);
+            if (count($compraEstado) > 0) {
+                $ultimoEstado = $compraEstado[0];
+                if ($ultimoEstado->getObjCompraEstadoTipo()->getIdCompraEstadoTipo() == 5) { // 5 es el estado 'carrito'
+                    $carritoActivo = $compra;
+                    break;
+                }
+            }
+        }
+
+        // Si no hay un carrito activo, crear uno nuevo
+        if ($carritoActivo === null) {
             crearCarrito($idUsuario, $idProducto, $cantidad);
             $response = ['estado' => 'exito', 'mensaje' => 'Producto agregado al carrito.'];
         } else {
-            // Si tiene compras, se busca la última compra con estado 'carrito'
-            $posibleCarrito = $comprasCliente[count($comprasCliente) - 1];
-            if (count($controlCompraEstado->buscar(['idcompra' => $posibleCarrito->getIdCompra()])) === 1) {
-                $objCompraCarrito = $posibleCarrito;
-                $colCompraItems = $controlCompraItem->buscar(['idcompra' => $objCompraCarrito->getIdCompra(), 'idproducto' => $idProducto]);
+            // Si hay un carrito activo, agrego productos
+            $objCompraCarrito = $carritoActivo;
+            $colCompraItems = $controlCompraItem->buscar(['idcompra' => $objCompraCarrito->getIdCompra(), 'idproducto' => $idProducto]);
 
-                // Si el producto ya existe en el carrito, solo se suma la cantidad
-                if (count($colCompraItems) != 0) {
-                    $objCompraItem = $colCompraItems[0];
-                    $nuevaCantidad = $objCompraItem->getCiCantidad() + $cantidad;
+            // Si el producto ya existe en el carrito, solo se suma la cantidad
+            if (count($colCompraItems) != 0) {
+                $objCompraItem = $colCompraItems[0];
+                $nuevaCantidad = $objCompraItem->getCiCantidad() + $cantidad;
 
-                    if ($nuevaCantidad > $stockDisponible) {
-                        $response = ['estado' => 'error', 'mensaje' => 'No hay suficiente stock disponible para esta cantidad.'];
-                    } else {
-                        $objCompraItem->setCiCantidad($nuevaCantidad);
-                        // Llamamos a la función 'modificacion' del ABM de CompraItem
-                        $param = [
-                            'idcompraitem' => $objCompraItem->getIdCompraItem(),
-                            'idproducto' => $idProducto,
-                            'idcompra' => $objCompraCarrito->getIdCompra(),
-                            'cicantidad' => $objCompraItem->getCiCantidad()
-                        ];
-                        $controlCompraItem->modificacion($param);
-                        $response = ['estado' => 'exito', 'mensaje' => 'Cantidad actualizada en el carrito.'];
-                    }
+                if ($nuevaCantidad > $stockDisponible) {
+                    $response = ['estado' => 'error', 'mensaje' => 'No hay suficiente stock disponible para esta cantidad.'];
                 } else {
-                    // Si el producto no existe en el carrito, se agrega como un nuevo ítem
-                    if ($cantidad <= $stockDisponible) {
-                        $controlCompraItem->alta(['idproducto' => $idProducto, 'idcompra' => $objCompraCarrito->getIdCompra(), 'cicantidad' => $cantidad]);
-                        $response = ['estado' => 'exito', 'mensaje' => 'Producto agregado al carrito.'];
-                    } else {
-                        $response = ['estado' => 'error', 'mensaje' => 'No hay suficiente stock disponible para agregar el producto al carrito.'];
-                    }
+                    $objCompraItem->setCiCantidad($nuevaCantidad);
+                    // Llamamos a la función 'modificacion' del ABM de CompraItem
+                    $param = [
+                        'idcompraitem' => $objCompraItem->getIdCompraItem(),
+                        'idproducto' => $idProducto,
+                        'idcompra' => $objCompraCarrito->getIdCompra(),
+                        'cicantidad' => $objCompraItem->getCiCantidad()
+                    ];
+                    $controlCompraItem->modificacion($param);
+                    $response = ['estado' => 'exito', 'mensaje' => 'Cantidad actualizada en el carrito.'];
                 }
             } else {
-                // Si no tiene un carrito activo, se crea uno nuevo
-                crearCarrito($idUsuario, $idProducto, $cantidad);
-                $response = ['estado' => 'exito', 'mensaje' => 'Producto agregado al carrito.'];
+                // Si el producto no existe en el carrito, se agrega como un nuevo ítem
+                if ($cantidad <= $stockDisponible) {
+                    $controlCompraItem->alta(['idproducto' => $idProducto, 'idcompra' => $objCompraCarrito->getIdCompra(), 'cicantidad' => $cantidad]);
+                    $response = ['estado' => 'exito', 'mensaje' => 'Producto agregado al carrito.'];
+                } else {
+                    $response = ['estado' => 'error', 'mensaje' => 'No hay suficiente stock disponible para agregar el producto al carrito.'];
+                }
             }
         }
     }
@@ -106,5 +112,3 @@ function crearCarrito($idUsuario, $idProducto, $cantidad) {
     $controlCompraItem->alta(['idproducto' => $idProducto, 'idcompra' => $compra->getIdCompra(), 'cicantidad' => $cantidad]);
 }
 ?>
-
-

@@ -16,8 +16,8 @@ if ($objSession->validar()) {
 
     // Verificar si se encontraron compras
     if (count($compras) > 0) {
-        $carritos = [];
-
+        $productos = [];
+        
         // Recorrer las compras del usuario
         foreach ($compras as $compra) {
             $idCompra = $compra->getIdCompra();
@@ -28,17 +28,12 @@ if ($objSession->validar()) {
 
             // Verificar si el estado de la compra es 'carrito'
             if (count($estadoCompra) > 0 && $estadoCompra[0]->getObjCompraEstadoTipo()->getCetDescripcion() == 'carrito') {
-                // Obtener el idCompraEstado asociado al carrito
-                $idCompraEstado = $estadoCompra[0]->getIdCompraEstado();
-
-                // Buscar los productos en el carrito utilizando el idCompra
+                // Ahora buscar los productos en el carrito utilizando el idcompra
                 $controlCompraItem = new AbmCompraItem();
                 $itemsCarrito = $controlCompraItem->buscar(['idcompra' => $idCompra]);
 
                 // Verificar si el carrito tiene productos
                 if (count($itemsCarrito) > 0) {
-                    $productos = [];
-
                     foreach ($itemsCarrito as $item) {
                         $producto = $item->getObjProducto();
                         $productos[] = [
@@ -46,26 +41,19 @@ if ($objSession->validar()) {
                             'nombre' => $producto->getProNombre(),
                             'precio' => $producto->getProPrecio(),
                             'cantidad' => $item->getCiCantidad(),
-                            'imagen' => $URLIMAGEN . $producto->getUrlImagen()
+                            'imagen' => $URLIMAGEN . $producto->getUrlImagen() 
                         ];
                     }
-
-                    // Agregar los productos y el idCompraEstado al carrito
-                    $carritos[] = [
-                        'idcompra' => $idCompra,
-                        'idcompraestado' => $idCompraEstado,
-                        'productos' => $productos
-                    ];
                 }
             }
         }
 
-        // Verificar si se encontraron carritos
-        if (count($carritos) > 0) {
-            // Responder con los carritos y sus productos
+        // Verificar si se encontraron productos en el carrito
+        if (count($productos) > 0) {
+            // Responder con los productos en el carrito
             echo json_encode([
                 'estado' => 'exito',
-                'carritos' => $carritos
+                'productos' => $productos
             ]);
         } else {
             // Si no se encontraron productos en ningún carrito

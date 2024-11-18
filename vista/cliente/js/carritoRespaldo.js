@@ -19,7 +19,7 @@ $(document).ready(function() {
 
                         // Agregar fila a la tabla
                         carritoHTML += `
-                            <tr data-id="${producto.idproducto}">
+                            <tr data-id="${producto.idproducto}"> 
                                 <td><img src="${producto.imagen}" alt="${producto.nombre}" class="img-fluid" style="max-width: 50px;"></td>
                                 <td>${producto.nombre}</td>
                                 <td>${producto.cantidad}</td>
@@ -46,6 +46,45 @@ $(document).ready(function() {
                     
                     // Mostrar el modal del carrito
                     $('#cartModal').modal('show');
+
+                    // Asociar el evento de eliminación dinámicamente
+                    $('.delete-item').on('click', function() {
+                        // Obtener el idcompraitem desde el atributo data-id
+                        let idProducto = $(this).closest('tr').data('id');
+                        //console.log(idProducto);
+                        
+                        // Hacer la solicitud AJAX para eliminar el ítem del carrito
+                        $.ajax({
+                            url: './accion/accionEliminarCarrito.php',
+                            type: 'POST',
+                            data: { idproducto: idProducto }, 
+                            dataType: 'json', 
+                            success: function(response) {
+                                if (response.estado === 'exito') {
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: 'Producto eliminado',
+                                        text: response.mensaje, 
+                                    });
+
+                                    $('.carrito').click();
+                                } else {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'Error al eliminar',
+                                        text: response.mensaje, // Usar response en lugar de data
+                                    });
+                                }
+                            },
+                            error: function() {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: 'Hubo un problema al eliminar el producto. Intenta de nuevo más tarde.',
+                                });
+                            }
+                        });
+                    });
                 } else {
                     Swal.fire({
                         icon: 'error',
@@ -64,3 +103,4 @@ $(document).ready(function() {
         });
     });
 });
+

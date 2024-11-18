@@ -7,6 +7,7 @@ $datos = data_submitted();
 
 $obj = new ABMProducto();
 $lista = $obj->buscar(null);
+
 ?>
 
 <div class="container d-flex justify-content-between align-items-center py-4">
@@ -138,6 +139,8 @@ $lista = $obj->buscar(null);
                 </table>
             </div>
             <div class="modal-footer">
+                <!-- Input oculto para almacenar el idcompraestado -->
+                <input type="hidden" id="idcompraestado" name="idcompraestado" value="">
                 <button class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
                 <button class="btn btn-success" id="boton-comprar">Comprar</button>
             </div>
@@ -151,6 +154,7 @@ $lista = $obj->buscar(null);
 <script src="./js/producto.js"></script>
 <script src="./js/agregarAlCarrito.js"></script>
 <script src="./js/carrito.js"></script>
+<script src="./js/iniciarCompra.js"></script>
 
 <?php
 include_once "../estructura/pie.php";
