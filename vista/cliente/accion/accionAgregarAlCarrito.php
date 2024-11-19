@@ -54,6 +54,7 @@ if (isset($datos['idproducto'], $datos['cicantidad'])) {
 
             // Si el producto ya existe en el carrito, solo se suma la cantidad
             if (count($colCompraItems) != 0) {
+            
                 $objCompraItem = $colCompraItems[0];
                 $nuevaCantidad = $objCompraItem->getCiCantidad() + $cantidad;
 
